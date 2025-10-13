@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   site: "https://riografa.github.io",
-  base: "/",
+  base: "riografa.github.io/",
   vite: {
     plugins: [tailwindcss()],
   },
