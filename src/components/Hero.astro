@@ -1,11 +1,11 @@
-<section class="relative w-screen h-[100dvh] flex flex-col justify-end items-center overflow-hidden">
+<section class="relative w-screen h-screen flex flex-col justify-end items-center overflow-hidden">
   <div id="model-3d-container" class="absolute inset-0 w-full h-full z-0"></div>
 
-  <div class="relative w-full z-10 flex flex-col gap-2 p-2 text-center pb-8 text-gray-800">
+  <div class="relative w-full h-auto z-10 flex flex-col gap-2 p-2 text-center pb-8 text-gray-800">
     <h1 class="text-2xl lg:text-5xl font-bold">
       Luisa Fernanda Giraldo Murillo
     </h1>
-    <p>
+    <p class="pb-8">
       Magíster Interdisciplinar en Teatro y Artes Vivas y estudiante del Doctorado en Arte y Arquitectura
     </p>
   </div>
@@ -16,34 +16,150 @@
 
   (async () => {
     const container = document.getElementById('model-3d-container');
-    if (!container) return;
-
-    const rect = container.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      container.style.minHeight = '320px';
+    console.log('[Hero] Container encontrado:', !!container);
+    
+    if (!container) {
+      console.error('[Hero] No se encontró el contenedor');
+      return;
     }
 
+    // Asegurar que el contenedor ocupe toda la ventana
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '100vw';
+    container.style.height = '100vh';
+    container.style.zIndex = '0';
+
+    console.log('[Hero] Contenedor configurado para viewport completo');
+
     try {
-      // Usar import.meta.env.BASE_URL para obtener la base path
-      const base = import.meta.env.BASE_URL || '/';
-      const modelPath = `${base}models/mapa-colombia.glb`.replace(/\/+/g, '/');
+      // Detectar la base URL desde el navegador
+      function getCorrectBasePath() {
+        const hostname = window.location.hostname;
+        const pathname = window.location.pathname;
+        
+        console.log('[Hero] Hostname:', hostname, 'Pathname:', pathname);
+        
+        // En desarrollo local (localhost o 127.0.0.1)
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return '/';
+        }
+        
+        // En GitHub Pages
+        if (hostname.includes('github.io')) {
+          // Si es usuario.github.io/repo-name
+          const pathSegments = pathname.split('/').filter(Boolean);
+          if (pathSegments.length > 0) {
+            return `/${pathSegments[0]}/`;
+          }
+        }
+        
+        // Fallback para otros casos
+        return '/';
+      }
       
+      const basePath = getCorrectBasePath();
+      const modelPath = `${basePath}models/mapa-colombia.glb`.replace(/\/+/g, '/');
+      
+      console.log('[Hero] Base path detectado:', basePath);
       console.log('[Hero] Cargando modelo desde:', modelPath);
       
       const scene = await initGLBScene(container, modelPath);
       window.threeScene = scene;
-      console.log('[Hero] Modelo 3D cargado correctamente');
+      
+      console.log('[Hero] ✅ Escena 3D inicializada correctamente');
+      console.log('[Hero] 🎬 Animaciones activas:', scene.animations?.length || 0);
+      
+      // Mostrar información de estado mejorada
+      setTimeout(() => {
+        const statusInfo = document.createElement('div');
+        statusInfo.style.cssText = `
+          position: fixed;
+          top: 20px;
+          left: 20px;
+          background: rgba(0, 0, 0, 0.9);
+          color: white;
+          padding: 20px;
+          border-radius: 10px;
+          font-family: monospace;
+          font-size: 13px;
+          z-index: 50;
+          max-width: 350px;
+          line-height: 1.5;
+          border-left: 4px solid #00ff00;
+        `;
+        
+        statusInfo.innerHTML = `
+          <strong>🎬 Estado del Modelo 3D:</strong><br>
+          • <strong>Escala:</strong> 8x más grande<br>
+          • <strong>Viewport:</strong> ${window.innerWidth}x${window.innerHeight}<br>
+          • <strong>Animaciones:</strong> ${scene.animations?.length || 0} detectadas<br>
+          • <strong>Controles:</strong> Click izq: rotar | Rueda: zoom | Click der: pan<br>
+          <hr style="border: 1px solid rgba(255,255,255,0.3); margin: 10px 0;">
+          <small><strong>📝 Tip:</strong> Si no ves animaciones, el modelo GLB podría no tenerlas exportadas correctamente desde Blender</small>
+        `;
+        container.appendChild(statusInfo);
+        
+        // Desvanecer después de 12 segundos
+        setTimeout(() => {
+          statusInfo.style.transition = 'opacity 3s';
+          statusInfo.style.opacity = '0';
+          setTimeout(() => {
+            if (container.contains(statusInfo)) {
+              container.removeChild(statusInfo);
+            }
+          }, 3000);
+        }, 12000);
+      }, 1000);
+      
     } catch (err) {
-      console.error('[Hero] Error al cargar el modelo:', err);
-      const errEl = document.createElement('div');
-      errEl.style.cssText = 'position:absolute;left:8px;top:8px;background:#ffcdd2;color:#b71c1c;padding:8px;border-radius:6px;z-index:50;';
-      errEl.textContent = 'Error 3D: ' + err.message;
-      container.appendChild(errEl);
+      console.error('[Hero] ❌ Error al inicializar escena 3D:', err);
+      
+      const basePath = window.location.hostname === 'localhost' ? '/' : '/riografa.github.io/';
+      const expectedPath = `${window.location.origin}${basePath}models/mapa-colombia.glb`.replace(/\/+/g, '/');
+      
+      const errorEl = document.createElement('div');
+      errorEl.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 0, 0, 0.95);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        text-align: left;
+        z-index: 100;
+        max-width: 90%;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        line-height: 1.4;
+        border: 2px solid #ff6b6b;
+      `;
+      
+      errorEl.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; color: #ffcccb;">❌ Error cargando modelo 3D</h3>
+        <p><strong>Error:</strong> ${err.message}</p>
+        <hr style="margin: 15px 0; border: 1px solid rgba(255,255,255,0.3);">
+        <p><strong>Buscando modelo en:</strong><br><code>${expectedPath}</code></p>
+        <hr style="margin: 15px 0; border: 1px solid rgba(255,255,255,0.3);">
+        <p><strong>✅ Verificar:</strong></p>
+        <ol style="margin: 10px 0; padding-left: 20px;">
+          <li>Archivo existe en: <code>/public/models/mapa-colombia.glb</code></li>
+          <li>Archivo no está corrupto</li>
+          <li>Deploy exitoso en GitHub Pages</li>
+        </ol>
+      `;
+      container.appendChild(errorEl);
     }
   })();
 
+  // Limpieza al salir de la página
   window.addEventListener('beforeunload', () => {
     const scene = window.threeScene;
-    if (scene && scene.dispose) scene.dispose();
+    if (scene && scene.dispose) {
+      scene.dispose();
+    }
   });
 </script>
